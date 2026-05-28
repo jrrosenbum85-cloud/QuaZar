@@ -26,3 +26,24 @@ class SGPSNeuralMatrix:
         if len(self.history) > self.sequence_length:
             self.history.pop(0)
         return self.model.forward_step(dynamic_state_vector)
+
+    def evaluate_and_reroute(self, prediction_tensor, ship_solver, ship_id, master_log_path):
+        """Analyzes prediction tensor for spacetime anomalies and auto-reroutes."""
+        # Simple heuristic: if the mean of the hidden state prediction drops below -0.2, assume danger
+        anomaly_score = np.mean(prediction_tensor)
+        
+        if anomaly_score < -0.2: 
+            # Danger detected! Reroute by applying an emergency thrust (outward radial & angular momentum)
+            ship_solver.momentum[1] += 2500.0  
+            ship_solver.momentum[3] += 1000.0
+            
+            log_msg = f"[AI-OVERRIDE] {ship_id} - Predicted anomalous spatial decay (Score: {anomaly_score:.3f}). Emergency reroute initiated to preserve asset.\n"
+            
+            with open(master_log_path, "a") as ml:
+                ml.write(log_msg)
+            print(f" -> {log_msg.strip()}")
+            
+            # Dampen the hidden state to avoid rerouting on every single micro-tick
+            self.model.h *= 0.1
+            return True
+        return False

@@ -76,12 +76,23 @@ def run_fleet_simulation():
                         
                         # --- PHYSICAL EXOTIC MATTERS ALLOCATION MATRIX ---
                         # Dynamic Dark Matter profile density halo volumetric expansion tracking
-                        enclosed_dm_mass = 4.0 * np.pi * (current_r ** 3) * rho_dm * 1.5e5
+                        # Includes a log-buffer for smoothing density spikes (Mass Parameter Smoothing)
+                        dm_density_buffered = rho_dm * (1.0 + np.tanh(rho_dm / 1e-9))
+                        enclosed_dm_mass = 4.0 * np.pi * (current_r ** 3) * dm_density_buffered * 1.5e5
                         dynamic_mass_parameter = base_M + enclosed_dm_mass
                         ship_solver.spacetime.metric_function = kerr_metric_function(mass=dynamic_mass_parameter, spin_a=spin_a)
                         
                         r_prev = current_r
                         ship_solver.flight_loop_step(dlambda=dlambda)
+                        
+                        # AI Rerouting check based on predictive matrix
+                        if hasattr(ship_solver, 'last_prediction'):
+                            ship_solver.forecaster.evaluate_and_reroute(
+                                ship_solver.last_prediction,
+                                ship_solver,
+                                ship_id,
+                                master_log_path
+                            )
                         
                         # Accumulate structural tracks
                         current_speed = ship_solver.history[-1]['speed']
@@ -92,9 +103,10 @@ def run_fleet_simulation():
                         total_proper_time += dlambda
                         
                         # All unassigned weather parameters explicitly mapped into material destruction profile
-                        antimatter_wear = env["antimatter_density_m3"] * 2.0e-9
+                        # Coefficients recalibrated for extended endurance in high-entropy sectors
+                        antimatter_wear = env["antimatter_density_m3"] * 1.2e-9
                         solar_wind_wear = env["solar_wind_velocity_flux_ev"] * 1.5e-11
-                        grav_wave_strains = env["gravitational_wave_noise_hz"] * 1.8
+                        grav_wave_strains = env["gravitational_wave_noise_hz"] * 1.2
                         tidal_tearing = (base_M * 2e-4) / (current_r ** 2)
                         
                         ship_solver.hull_integrity -= (antimatter_wear + solar_wind_wear + grav_wave_strains + tidal_tearing) * dlambda

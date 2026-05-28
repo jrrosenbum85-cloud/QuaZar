@@ -21,11 +21,22 @@ class SymplecticIntegrator:
         dx_dlambda = g_inv @ momentum
         dp_dlambda = np.zeros(self.spacetime.dim)
         
-        # 64-bit numerical differentiator checking metric variations: partial g / partial x^mu
-        delta = 1e-5
+        # Adaptive differentiator: scale delta based on the local metric gradient to handle curvature spikes
+        base_delta = 1e-5
+        
         for mu in range(self.spacetime.dim):
             x_pos = np.copy(position)
             x_neg = np.copy(position)
+            
+            # Estimate local gradient to determine adaptive delta scaling
+            g_center = self.spacetime.metric_function(position)
+            x_test = np.copy(position); x_test[mu] += base_delta
+            g_test = self.spacetime.metric_function(x_test)
+            gradient_magnitude = np.max(np.abs(g_test - g_center)) / base_delta
+            
+            # Adaptive delta: smaller steps in high-curvature zones
+            delta = base_delta / (1.0 + np.log1p(gradient_magnitude))
+            
             x_pos[mu] += delta
             x_neg[mu] -= delta
             

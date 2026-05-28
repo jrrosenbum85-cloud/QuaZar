@@ -18,8 +18,11 @@ def kerr_metric_function(mass, spin_a):
         t, r, theta, phi = x
         g = np.zeros((4, 4))
         
-        # Enforce physical coordinate floor protection near the singularity boundary
-        r = max(r, 2.0 * mass + 1e-4)
+        # Smooth coordinate damping near the horizon boundary to prevent 'hard wall' restarts
+        horizon_limit = 2.0 * mass
+        if r < horizon_limit + 0.1:
+            # Apply an exponential damping to smoothly decelerate 'r' as it approaches the horizon
+            r = horizon_limit + 0.1 * np.exp((r - (horizon_limit + 0.1)) / 0.1)
         
         sigma = r**2 + (spin_a * np.cos(theta))**2
         delta = r**2 - 2.0 * mass * r + spin_a**2

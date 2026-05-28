@@ -1,0 +1,2 @@
+Project Name: substrate-agnostic-empiricism
+Short Description: A formalized framework and diagnostic paradigm for pattern-anchored observation and system behavior analysis independent of substrate.

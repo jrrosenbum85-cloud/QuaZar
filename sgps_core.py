@@ -41,4 +41,4 @@ class SGPSMasterSolver:
         state_features[4:8] = self.momentum
         state_features[8] = speed_magnitude
         state_features[9] = self.hull_integrity
-        self.forecaster.log_and_predict(state_features)
+        self.last_prediction = self.forecaster.log_and_predict(state_features)
